@@ -173,12 +173,14 @@ export default class ATM {
   private checkQueueResolve() {
     if (!this.queueResolve) return
     let query = this.query()
-    if (this.strict) {
-      if (query.failed === 0) {
-        this.queueResolve()
+    if(query.finished === query.count) {
+      if(!this.strict) {
+        this.queueResolve();
+        return;
       }
-    } else if (query.finished === query.count) {
-      this.queueResolve()
+      if(query.failed === 0) {
+        this.queueResolve();
+      }
     }
   }
 
