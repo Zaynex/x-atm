@@ -96,14 +96,15 @@ export default class ATM {
   }
 
   query() {
-    let finishedQueue = this.taskQueue.reduce(function(accumulator: Array<ATMTask>, currentValue) {
-      accumulator = currentValue.finished ? accumulator.concat(currentValue) : accumulator
-      return accumulator
-    }, [])
-    let failedQueue = this.taskQueue.reduce(function(accumulator: Array<ATMTask>, currentValue) {
-      accumulator = currentValue.failed ? accumulator.concat(currentValue) : accumulator
-      return accumulator
-    }, [])
+    const taskQueueReducer = (key: 'finished' | 'failed') => {
+      return this.taskQueue.reduce(function(accumulator: Array<ATMTask>, currentValue) {
+        accumulator = currentValue[key] ? accumulator.concat(currentValue) : accumulator
+        return accumulator
+      }, [])
+    }
+
+    let finishedQueue = taskQueueReducer('finished');
+    let failedQueue = taskQueueReducer('failed');
     return {
       finished: finishedQueue.length,
       failed: failedQueue.length,
