@@ -103,8 +103,8 @@ export default class ATM {
       }, [])
     }
 
-    let finishedQueue = taskQueueReducer('finished');
-    let failedQueue = taskQueueReducer('failed');
+    let finishedQueue = taskQueueReducer('finished')
+    let failedQueue = taskQueueReducer('failed')
     return {
       finished: finishedQueue.length,
       failed: failedQueue.length,
@@ -173,13 +173,13 @@ export default class ATM {
   private checkQueueResolve() {
     if (!this.queueResolve) return
     let query = this.query()
-    if(query.finished === query.count) {
-      if(!this.strict) {
-        this.queueResolve();
-        return;
+    if (query.finished === query.count) {
+      if (!this.strict) {
+        this.queueResolve()
+        return
       }
-      if(query.failed === 0) {
-        this.queueResolve();
+      if (query.failed === 0) {
+        this.queueResolve()
       }
     }
   }
@@ -208,13 +208,13 @@ export default class ATM {
   }
 }
 
-interface AsyncTaskObj {
+export interface AsyncTaskObj {
   (taskIndex?: number): Promise<any>
   resolve?: Function
   reject?: Function
 }
 
-interface AsyncTask {
+export interface AsyncTask {
   (taskIndex?: number): Promise<any>
   resolve?: Function
   reject?: Function

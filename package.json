@@ -1,8 +1,13 @@
 {
   "name": "x-atm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "async task manager",
-  "keywords": ["task","async", "promise", "task manager"],
+  "keywords": [
+    "task",
+    "async",
+    "promise",
+    "task manager"
+  ],
   "main": "dist/atm.umd.js",
   "module": "dist/atm.es5.js",
   "typings": "dist/types/atm.d.ts",
