@@ -1,6 +1,7 @@
 const ATM = require('../dist/atm.umd.js');
 function handleAll() {
-  console.log("all task resolved");
+  console.log("all tasks resolved");
+  task.reset();
 }
 
 let task = new ATM(4, true, handleAll);

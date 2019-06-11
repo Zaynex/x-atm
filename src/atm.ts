@@ -5,21 +5,19 @@ export default class ATM {
   private maxParalle: number // max paralle, usually control the number of asynchronous tasks, eg: http requests
   private queueResolve: Function // all the tasks resolved
   private strict: boolean // if strict is true, it will re-execute the failed tasks after all tasks executed
-  private taskQueue: Array<ATMTask> // push the task into this takQueue
+  private taskQueue: Array<ATMTask> = [] // push the task into this takQueue
   private queueIndex = 0 // give one task a index according to the order of pushing
   private currTaskIndex = 0 // current task executed index
   private currTaskCount = 0 // current tasks count
   private _stop = false // stop helper
   private executed = false // check if taskQueue is executed
-  private failedQueue: Array<ATMTask> // failedQueue, push the failed task to this queue
-  private reset: Function
+  private failedQueue: Array<ATMTask> = [] // failedQueue, push the failed task to this queue
+  public reset: (force?: boolean) => void
   constructor(maxParalle = 3, strict = true, queueResolve: Function) {
     this.maxParalle = maxParalle
     this.strict = strict
     this.queueResolve = queueResolve
-    this.taskQueue = []
-    this.failedQueue = []
-    this.reset = (force: boolean) => {
+    this.reset = (force = true) => {
       if (force) {
         this.taskQueue = []
       } else {
@@ -32,8 +30,9 @@ export default class ATM {
       this._stop = false
       this.executed = false
       this.failedQueue = []
+      this.queueIndex = 0
     }
-    this.reset(true)
+    this.reset()
   }
 
   push(asyncTask: AsyncTask | AsyncTaskObj): void {
