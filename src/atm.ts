@@ -94,7 +94,7 @@ export default class ATM {
       )
   }
 
-  query() {
+  query(): Query {
     const taskQueueReducer = (key: 'finished' | 'failed') => {
       return this.taskQueue.reduce(function(accumulator: Array<ATMTask>, currentValue) {
         accumulator = currentValue[key] ? accumulator.concat(currentValue) : accumulator
@@ -113,12 +113,18 @@ export default class ATM {
 
   private _resolve(atmTask: ATMTask | undefined, value: any) {
     if (!atmTask) return
-    if (atmTask.task.resolve) {
-      atmTask.task.resolve(value)
-    }
+
     atmTask.finished = true
     atmTask.failed = false
     this.currTaskCount--
+
+    if (atmTask.task.resolve) {
+      const process = this.query()
+      atmTask.task.resolve(value, {
+        index: atmTask.taskIndex,
+        ...process
+      })
+    }
 
     if (this._stop) return
     if (this.currTaskIndex < this.taskQueue.length) {
@@ -139,9 +145,6 @@ export default class ATM {
 
   private _reject(atmTask: ATMTask | undefined, reason: any) {
     if (!atmTask) return
-    if (atmTask.task.reject) {
-      atmTask.task.reject(reason)
-    }
 
     atmTask.finished = true
     atmTask.failed = true
@@ -149,6 +152,14 @@ export default class ATM {
 
     if (this.strict) {
       this.failedQueue.push(atmTask)
+    }
+
+    if (atmTask.task.reject) {
+      const process = this.query()
+      atmTask.task.reject(reason, {
+        index: atmTask.taskIndex,
+        ...process
+      })
     }
 
     if (this._stop) return
@@ -209,14 +220,27 @@ export default class ATM {
 
 export interface AsyncTaskObj {
   (taskIndex?: number): Promise<any>
-  resolve?: Function
-  reject?: Function
+  resolve?: PromiseHandler
+  reject?: PromiseHandler
 }
 
 export interface AsyncTask {
   (taskIndex?: number): Promise<any>
-  resolve?: Function
-  reject?: Function
+  resolve?: PromiseHandler
+  reject?: PromiseHandler
+}
+
+export interface PromiseHandler {
+  (resolve: any, status: Status): any
+}
+
+interface Status extends Query {
+  index: number
+}
+export interface Query {
+  count: number
+  finished: number
+  failed: number
 }
 
 class ATMTask {
