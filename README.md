@@ -1,5 +1,7 @@
 # Async Task Manager
-A JavaScript library for controlling asynchronous parallelism.
+> A JavaScript library for controlling asynchronous parallelism.
+
+*其他语言版本： [简体中文](README.zh.md)*
 
 ## Background
 `x-atm` is designed to help you control asynchronous tasks.
