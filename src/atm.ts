@@ -2,7 +2,7 @@
 // import "core-js/fn/array.find"
 // ...
 export default class ATM {
-  private maxParalle: number // max paralle, usually control the number of asynchronous tasks, eg: http requests
+  private maxParallel: number // max paralle, usually control the number of asynchronous tasks, eg: http requests
   private queueResolve: Function // all the tasks resolved
   private strict: boolean // if strict is true, it will re-execute the failed tasks after all tasks executed
   private taskQueue: Array<ATMTask> = [] // push the task into this takQueue
@@ -10,11 +10,12 @@ export default class ATM {
   private currTaskIndex = 0 // current task executed index
   private currTaskCount = 0 // current tasks count
   private _stop = false // stop helper
-  private executed = false // check if taskQueue is executed
   private failedQueue: Array<ATMTask> = [] // failedQueue, push the failed task to this queue
   public reset: (force?: boolean) => void
-  constructor(maxParalle = 3, strict = true, queueResolve: Function) {
-    this.maxParalle = maxParalle
+  public maxTaskQueueLen = 100 // max taskQueue length
+  public maxFailedQueueLen = 20 // max failedQueue length
+  constructor(maxParallel = 3, strict = true, queueResolve: Function) {
+    this.maxParallel = maxParallel
     this.strict = strict
     this.queueResolve = queueResolve
     this.reset = (force = true) => {
@@ -28,33 +29,32 @@ export default class ATM {
       this.currTaskIndex = 0
       this.currTaskCount = 0
       this._stop = false
-      this.executed = false
+      // this.isQueueResolved = false
       this.failedQueue = []
       this.queueIndex = 0
     }
     this.reset()
   }
 
-  push(asyncTask: AsyncTask | AsyncTaskObj): void {
-    if (this.executed) {
-      console.warn("Unaviable push.Can't push asyncTask to queue when task start.")
-      return
+  push(asyncTask: AsyncTask | AsyncTaskObj): ATM {
+    if (this.taskQueue.length >= this.maxTaskQueueLen) {
+      console.warn('Push asyncTask fail! Task The number of tasks exceeded the limit.')
+      return this
     }
     if (asyncTask instanceof Function) {
       this.taskQueue.push(new ATMTask(asyncTask, false, this.queueIndex))
       this.queueIndex++
     }
+
+    return this
   }
 
-  start() {
-    if (this.executed) {
-      console.warn('task already start.')
-      return
-    }
-
-    this.executed = true
-    let finalParalle = Math.min(this.taskQueue.length, this.maxParalle)
-    this.taskQueue.slice(0, finalParalle).forEach(atmTask => {
+  start(): ATM {
+    if (this._stop) return this
+    let finalParallel = Math.min(this.taskQueue.length, this.maxParallel - this.currTaskCount)
+    const begin = this.currTaskIndex
+    const end = begin + finalParallel
+    this.taskQueue.slice(begin, end).forEach(atmTask => {
       atmTask
         .task(atmTask.taskIndex)
         .then(
@@ -62,29 +62,32 @@ export default class ATM {
           (reason: any) => this._reject(atmTask, reason)
         )
     })
-    this.currTaskIndex = finalParalle - 1
-    this.currTaskCount = finalParalle
+    this.currTaskIndex += finalParallel - 1
+    this.currTaskCount = finalParallel
+    return this
   }
 
-  stop() {
+  stop(): ATM {
     this._stop = true
+    return this
   }
 
-  continue() {
+  continue(): ATM {
     this._stop = false
     if (this.currTaskIndex < this.taskQueue.length) {
-      this.next()
+      this.start()
     } else {
       if (this.strict) {
         this.nextFailedQueue()
       }
     }
+    return this
   }
 
-  next() {
+  next(): ATM {
     this.currTaskIndex++
     const atmTask = this.taskQueue[this.currTaskIndex]
-    if (!atmTask) return
+    if (!atmTask) return this
     this.currTaskCount++
     atmTask
       .task(atmTask.taskIndex)
@@ -92,6 +95,7 @@ export default class ATM {
         (value: any) => this._resolve(atmTask, value),
         (reason: any) => this._reject(atmTask, reason)
       )
+    return this
   }
 
   query(): Query {
@@ -111,13 +115,27 @@ export default class ATM {
     }
   }
 
+  setParallel(parallel: number): ATM {
+    this.maxParallel = parallel
+    return this
+  }
+
+  setMaxTaskQueue(maxLen: number): ATM {
+    this.maxTaskQueueLen = maxLen
+    return this
+  }
+
+  setMaxFailedQueue(maxLen: number): ATM {
+    this.maxFailedQueueLen = maxLen
+    return this
+  }
+
   private _resolve(atmTask: ATMTask | undefined, value: any) {
     if (!atmTask) return
 
     atmTask.finished = true
     atmTask.failed = false
     this.currTaskCount--
-
     if (atmTask.task.resolve) {
       const process = this.query()
       atmTask.task.resolve(value, {
@@ -125,10 +143,9 @@ export default class ATM {
         ...process
       })
     }
-
     if (this._stop) return
     if (this.currTaskIndex < this.taskQueue.length) {
-      if (this.currTaskCount < this.maxParalle) {
+      if (this.currTaskCount < this.maxParallel) {
         this.next()
       }
       return
@@ -164,7 +181,7 @@ export default class ATM {
 
     if (this._stop) return
     if (this.currTaskIndex < this.taskQueue.length) {
-      if (this.currTaskCount < this.maxParalle) {
+      if (this.currTaskCount < this.maxParallel) {
         this.next()
       }
       return
@@ -182,6 +199,8 @@ export default class ATM {
 
   private checkQueueResolve() {
     if (!this.queueResolve) return
+
+    // this.isQueueResolved = true;
     let query = this.query()
     if (query.finished === query.count) {
       if (!this.strict) {
@@ -195,10 +214,8 @@ export default class ATM {
   }
 
   private nextFailedQueue() {
-    if (this._stop) {
-      return
-    }
-    let failedQueueParalle = this.maxParalle - this.currTaskCount
+    if (this._stop) return
+    let failedQueueParalle = this.maxParallel - this.currTaskCount
     for (let i = 0; i < failedQueueParalle; i++) {
       this.executeFailedTask()
     }

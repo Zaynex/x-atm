@@ -24,36 +24,31 @@ for(let i = 0; i < 10; i++) {
   asyncTask.displayName = i;
 }
 
-task.start();
-task.push(asyncTask);
+task.start().push(asyncTask)
 
 setTimeout(() => {
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  // setTimeout(() => {
-  //   task.continue();
-  // }, 10000);
-  task.stop();
-  console.log('stop');
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
+  task.push(asyncTask)
+  .push(asyncTask)
+  .push(asyncTask)
+  .push(asyncTask)
+  .push(asyncTask)
+  task.stop()
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
   setTimeout(() => {
     console.log('continue');
     task.continue();
-  }, 20000);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
-  task.push(asyncTask);
+  }, 2000);
+  task.push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .push(asyncTask)
+    .start();
 
-  // task.start();
 }, 10000)
