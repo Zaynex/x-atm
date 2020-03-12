@@ -4,6 +4,7 @@
 export default class ATM {
   private maxParallel: number // max paralle, usually control the number of asynchronous tasks, eg: http requests
   private queueResolve: Function // all the tasks resolved
+  private queueReject: Function
   private strict: boolean // if strict is true, it will re-execute the failed tasks after all tasks executed
   private taskQueue: Array<ATMTask> = [] // push the task into this takQueue
   private queueIndex = 0 // give one task a index according to the order of pushing
@@ -11,29 +12,33 @@ export default class ATM {
   private currTaskCount = 0 // current tasks count
   private _stop = false // stop helper
   private failedQueue: Array<ATMTask> = [] // failedQueue, push the failed task to this queue
-  public reset: (force?: boolean) => void
+  private maxRetry: number
   public maxTaskQueueLen = 100 // max taskQueue length
-  public maxFailedQueueLen = 20 // max failedQueue length
-  constructor(maxParallel = 3, strict = true, queueResolve: Function) {
+  public maxFailedQueueLen = 100 // max failedQueue length
+  constructor(options: AtmOptions) {
+    const { maxParallel, resolve: queueResolve, reject: queueReject, strict, maxRetry } = options
     this.maxParallel = maxParallel
     this.strict = strict
     this.queueResolve = queueResolve
-    this.reset = (force = true) => {
-      if (force) {
-        this.taskQueue = []
-      } else {
-        if (this.taskQueue.length) {
-          this.taskQueue.forEach(atmTask => atmTask.restart())
-        }
+    this.queueReject = queueReject
+    this.maxRetry = maxRetry
+  }
+
+  reset(force: Boolean): ATM {
+    console.log('call reset')
+    if (force) {
+      this.taskQueue = []
+    } else {
+      if (this.taskQueue.length) {
+        this.taskQueue.forEach(atmTask => atmTask.restart())
       }
-      this.currTaskIndex = 0
-      this.currTaskCount = 0
-      this._stop = false
-      // this.isQueueResolved = false
-      this.failedQueue = []
-      this.queueIndex = 0
     }
-    this.reset()
+    this.currTaskIndex = 0
+    this.failedQueue = []
+    this.queueIndex = 0
+    this._stop = false
+    this.currTaskCount = 0
+    return this
   }
 
   push(asyncTask: AsyncTask | AsyncTaskObj): ATM {
@@ -132,6 +137,7 @@ export default class ATM {
 
   private _resolve(atmTask: ATMTask | undefined, value: any) {
     if (!atmTask) return
+    if (this._stop) return
 
     atmTask.finished = true
     atmTask.failed = false
@@ -140,10 +146,10 @@ export default class ATM {
       const process = this.query()
       atmTask.task.resolve(value, {
         index: atmTask.taskIndex,
+        retryCount: atmTask.retryCount,
         ...process
       })
     }
-    if (this._stop) return
     if (this.currTaskIndex < this.taskQueue.length) {
       if (this.currTaskCount < this.maxParallel) {
         this.next()
@@ -162,24 +168,38 @@ export default class ATM {
 
   private _reject(atmTask: ATMTask | undefined, reason: any) {
     if (!atmTask) return
+    if (this._stop) return
 
     atmTask.finished = true
     atmTask.failed = true
+    atmTask.retryCount += 1
     this.currTaskCount--
 
+    // push to failedQueue before query
     if (this.strict) {
-      this.failedQueue.push(atmTask)
+      if (atmTask.retryCount > this.maxRetry) {
+        this._stop = true
+        if (this.queueReject) {
+          this.queueReject(
+            `Task[${atmTask.taskIndex}] faild more than ${this.maxRetry} times in strict mode.`
+          )
+          return
+        }
+      } else {
+        this.failedQueue.push(atmTask)
+      }
     }
 
     if (atmTask.task.reject) {
       const process = this.query()
       atmTask.task.reject(reason, {
         index: atmTask.taskIndex,
+        retryCount: atmTask.retryCount,
         ...process
       })
     }
 
-    if (this._stop) return
+    // if current task doesn't finish, continue
     if (this.currTaskIndex < this.taskQueue.length) {
       if (this.currTaskCount < this.maxParallel) {
         this.next()
@@ -187,6 +207,7 @@ export default class ATM {
       return
     }
 
+    // strict mode: task finished, but some task failed, retry it
     if (this.strict) {
       if (this.failedQueue.length) {
         this.nextFailedQueue()
@@ -241,6 +262,13 @@ export interface AsyncTaskObj {
   reject?: PromiseHandler
 }
 
+export interface AtmOptions {
+  maxParallel: number
+  resolve: Function
+  reject: Function
+  strict: boolean
+  maxRetry: number
+}
 export interface AsyncTask {
   (taskIndex?: number): Promise<any>
   resolve?: PromiseHandler
@@ -253,6 +281,7 @@ export interface PromiseHandler {
 
 interface Status extends Query {
   index: number
+  retryCount: number
 }
 export interface Query {
   count: number
@@ -265,6 +294,7 @@ class ATMTask {
   finished: boolean
   taskIndex: number
   failed = false
+  retryCount = 0
   constructor(task: AsyncTask, finished = false, taskIndex: number) {
     this.task = task
     this.finished = finished
@@ -273,5 +303,7 @@ class ATMTask {
 
   restart() {
     this.finished = false
+    this.failed = false
+    this.retryCount = 0
   }
 }
