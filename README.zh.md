@@ -26,7 +26,7 @@
 
 ```
 const ATM = require('x-atm');
-const task = new ATM(4, true);
+const task = new ATM({maxParallel: 4});
 ```
 
 我们初始化一个 ATM 的实例：
@@ -78,7 +78,7 @@ asyncTask.reject = console.log
 完整的代码如下
 ```
 const ATM = require('x-atm');
-const task = new ATM(4, true);
+let task = new ATM({maxParallel: 4});
 
 const asyncTask = () => {
   return new Promise((resolve, reject) => {

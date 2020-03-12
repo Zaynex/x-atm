@@ -14,7 +14,7 @@ function handleAll() {
   console.log("all task resolved");
 }
 
-let task = new ATM(4, true, handleAll);
+let task = new ATM({maxParallel: 4,resolve: handleAll, strict: true});
 const asyncTask = (index) => {
   return new Promise((resolve, reject) => {
     let random = parseInt(Math.random() * 10000);
