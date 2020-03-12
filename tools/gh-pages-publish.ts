@@ -1,5 +1,6 @@
 const { cd, exec, echo, touch } = require("shelljs")
 const { readFileSync } = require("fs")
+require("dotenv").config({path: '/Users/admin/git/github/atm/.env'})
 const url = require("url")
 
 let repoUrl
