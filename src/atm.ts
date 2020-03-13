@@ -1,6 +1,5 @@
-// Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
-// import "core-js/fn/array.find"
-// ...
+const emptyFun = () => {}
+
 export default class ATM {
   private maxParallel: number // max paralle, usually control the number of asynchronous tasks, eg: http requests
   private queueResolve: Function // all the tasks resolved
@@ -15,17 +14,15 @@ export default class ATM {
   private maxRetry: number
   public maxTaskQueueLen = 100 // max taskQueue length
   public maxFailedQueueLen = 100 // max failedQueue length
-  constructor(options: AtmOptions) {
-    const { maxParallel, resolve: queueResolve, reject: queueReject, strict, maxRetry } = options
-    this.maxParallel = maxParallel
-    this.strict = strict
-    this.queueResolve = queueResolve
-    this.queueReject = queueReject
-    this.maxRetry = maxRetry
+  constructor(options: AtmOptions = {}) {
+    this.maxParallel = options.maxParallel || 4
+    this.strict = options.strict || false
+    this.queueResolve = options.resolve || emptyFun
+    this.queueReject = options.reject || emptyFun
+    this.maxRetry = 3
   }
 
-  reset(force: Boolean): ATM {
-    console.log('call reset')
+  reset(force?: Boolean): ATM {
     if (force) {
       this.taskQueue = []
     } else {
@@ -219,17 +216,12 @@ export default class ATM {
   }
 
   private checkQueueResolve() {
-    if (!this.queueResolve) return
-
-    // this.isQueueResolved = true;
+    // auto clear
     let query = this.query()
     if (query.finished === query.count) {
-      if (!this.strict) {
+      if (!this.strict || query.failed === 0) {
         this.queueResolve()
-        return
-      }
-      if (query.failed === 0) {
-        this.queueResolve()
+        this.reset(true)
       }
     }
   }
@@ -263,11 +255,11 @@ export interface AsyncTaskObj {
 }
 
 export interface AtmOptions {
-  maxParallel: number
-  resolve: Function
-  reject: Function
-  strict: boolean
-  maxRetry: number
+  maxParallel?: number
+  resolve?: Function
+  reject?: Function
+  strict?: boolean
+  maxRetry?: number
 }
 export interface AsyncTask {
   (taskIndex?: number): Promise<any>
@@ -276,7 +268,7 @@ export interface AsyncTask {
 }
 
 export interface PromiseHandler {
-  (resolve: any, status: Status): any
+  (resolve: any, status: Status): void
 }
 
 interface Status extends Query {
