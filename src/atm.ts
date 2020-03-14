@@ -38,7 +38,7 @@ export default class ATM {
     return this
   }
 
-  push(asyncTask: AsyncTask | AsyncTaskObj): ATM {
+  push(asyncTask: AsyncTask): ATM {
     if (this.taskQueue.length >= this.maxTaskQueueLen) {
       console.warn('Push asyncTask fail! Task The number of tasks exceeded the limit.')
       return this
@@ -246,12 +246,6 @@ export default class ATM {
       )
     this.currTaskCount++
   }
-}
-
-export interface AsyncTaskObj {
-  (taskIndex?: number): Promise<any>
-  resolve?: PromiseHandler
-  reject?: PromiseHandler
 }
 
 export interface AtmOptions {
