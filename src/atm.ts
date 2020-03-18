@@ -1,3 +1,4 @@
+/* tslint:disable:no-empty */
 const emptyFun = () => {}
 
 export default class ATM {
@@ -219,7 +220,7 @@ export default class ATM {
     // auto clear
     let query = this.query()
     if (query.finished === query.count) {
-      if (!this.strict || query.failed === 0) {
+      if (!this.strict || (query.failed === 0 && this.currTaskCount === 0)) {
         this.queueResolve()
         this.reset(true)
       }

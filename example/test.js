@@ -1,12 +1,11 @@
 const ATM = require('../dist/atm.umd.js')
 function handleAll() {
   console.log('all tasks resolved')
-  // task.reset();
 }
 
 let task = new ATM({
   strict: true,
-  maxRetry: 2,
+  maxRetry: 5,
   resolve: handleAll,
   reject: handleRejct,
   maxParallel: 4
@@ -20,7 +19,7 @@ const asyncTask = index => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       const random = parseInt(Math.random() * 10 + 1)
-      if (random > 9) {
+      if (random > 5) {
         resolve('value is ' + random + ' current task ' + index)
       } else {
         reject('reason is ' + random + ' current task ' + index)
