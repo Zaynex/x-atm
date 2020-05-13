@@ -7,7 +7,13 @@
 `x-atm` is designed to help you control asynchronous tasks.
 For example, in parallel file uploading, most browsers only support 6 paralle http requests. If you don't control async tasks(http request), it will block the request stack, and cause performance problem. But with `x-atm`, we can control the number of asynchronous requests to improve the upload efficiency.
 
+## Installation
+```
+yarn add x-atm
+```
+
 ## Basic usage
+
 ```javascript
 const ATM = require('x-atm');
 function handleAll() {
