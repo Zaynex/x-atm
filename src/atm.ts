@@ -70,6 +70,32 @@ export default class ATM {
     return this
   }
 
+  map<T>(items: T[], iteratee: (item: T) => Promise<any>): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      if (!items.length) {
+        resolve([])
+        return
+      }
+      const results: any[] = new Array(items.length)
+      let completedCount = 0
+
+      items.forEach((item, index) => {
+        const asyncTask = () => {
+          return iteratee(item).then((value) => {
+            results[index] = value
+            completedCount++
+            if (completedCount === items.length) {
+              resolve(results)
+            }
+          }).catch(reject)
+        }
+        this.push(asyncTask)
+      })
+
+      this.start()
+    })
+  }
+
   stop(): ATM {
     this._stop = true
     return this
